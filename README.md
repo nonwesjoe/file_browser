@@ -1,216 +1,155 @@
 # 📁 Web 文件管理器
 
-一个轻量、安全、开箱即用的 Web 文件管理器。无需数据库，直接管理服务器上的文件。
+一个轻量、安全、可定制的 Web 文件管理器。无需数据库，通过浏览器管理服务器文件。
 
 ![Node.js](https://img.shields.io/badge/Node.js-≥18-green) ![TypeScript](https://img.shields.io/badge/TypeScript-6.x-blue) ![Express](https://img.shields.io/badge/Express-5.x-lightgrey) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-## ✨ 功能特性
+## ✨ 功能
 
-| 分类 | 功能 | 说明 |
-|------|------|------|
-| **文件浏览** | 网格 / 列表视图 | 一键切换 |
-| | 面包屑导航 | 点击任意层级快速跳转 |
-| | 文件信息 | 显示文件名、大小（自适应 B/KB/MB/GB）、修改时间、类型图标 |
-| **文件操作** | 上传 | 拖拽上传 + 点击选择，支持批量上传 |
-| | 下载 | 点击文件直接下载 |
-| | 新建文件夹 | 弹窗输入名称 |
-| | 重命名 | 行内编辑，Enter 确认，Esc 取消 |
-| | 删除 | 二次确认弹窗，防止误删 |
-| **预览** | 图片缩略图 | 自动生成 WebP 缩略图，支持 jpg/png/gif/webp/svg/avif |
-| | 文本预览 | 点击文本文件弹出预览窗口，带行号，支持 50+ 种格式 |
-| | 图片全屏 | 点击图片查看原始尺寸 |
-| **安全** | 路径隔离 | 所有操作限制在指定存储目录内 |
-| | 路径遍历防护 | `../../etc/passwd` 等攻击自动拦截 |
-| **体验** | 响应式设计 | 适配桌面端和移动端 |
-| | Toast 通知 | 操作成功/失败实时反馈 |
-| | 键盘支持 | Escape 关闭弹窗，Enter 提交表单 |
-
-## 🚀 安装
-
-### 环境要求
-
-- Node.js ≥ 18
-
-### 方式一：curl 一行命令（推荐）
-
-```bash
-curl -sSL https://raw.githubusercontent.com/nonwesjoe/file_browser/main/bootstrap.sh | bash
-```
-
-### 方式二：手动克隆
-
-```bash
-git clone https://github.com/nonwesjoe/file_browser.git web-file-manager
-cd web-file-manager
-bash install.sh
-```
-
-安装脚本自动完成：检查 Node.js 版本 → 安装依赖 → 编译项目 → 创建存储目录。
-
-## ▶️ 启动
-
-安装完成后，进入项目目录启动服务：
-
-```bash
-cd ~/web-file-manager
-
-# 启动（默认端口 3000，默认存储目录 ./storage）
-npm run dev
-```
-
-浏览器打开 **http://localhost:3000** 即可使用。
-
-### 设置监听端口
-
-```bash
-# 使用 8080 端口
-PORT=8080 npm run dev
-```
-
-### 设置存储根目录
-
-`STORAGE_ROOT` 决定了文件管理器能访问哪个文件夹。用户在浏览器中看到的所有文件都来自这个目录。
-
-```bash
-# 管理 /home/user/documents 目录下的文件
-STORAGE_ROOT=/home/user/documents npm run dev
-
-# 管理 NAS 挂载目录
-STORAGE_ROOT=/mnt/nas/shared npm run dev
-
-# 管理外接硬盘
-STORAGE_ROOT=/media/usb-drive npm run dev
-```
-
-> **注意**：`STORAGE_ROOT` 支持绝对路径和相对路径。相对路径是相对于项目根目录。如果目录不存在会自动创建。
-
-### 同时设置端口和存储目录
-
-```bash
-PORT=8080 STORAGE_ROOT=/data/files npm run dev
-```
-
-### 生产模式运行
-
-```bash
-# 先编译
-npm run build
-
-# 再启动（不自动编译，性能更好）
-PORT=80 STORAGE_ROOT=/data/files npm start
-```
-
-### 安装为系统服务（开机自启）
-
-```bash
-# 安装时指定端口和存储目录
-bash install.sh --port 80 --storage /data/files --service
-
-# 管理服务
-sudo systemctl start web-file-manager    # 启动
-sudo systemctl stop web-file-manager     # 停止
-sudo systemctl restart web-file-manager  # 重启
-sudo systemctl status web-file-manager   # 查看状态
-sudo journalctl -u web-file-manager -f   # 查看日志
-```
-
-## ⚙️ 配置汇总
-
-| 环境变量 | 默认值 | 说明 |
-|----------|--------|------|
-| `PORT` | `3000` | 服务器监听端口 |
-| `STORAGE_ROOT` | `./storage` | 文件存储根目录，即用户在浏览器中看到的"根目录" |
-
-### 常见场景示例
-
-| 场景 | 命令 |
+| 分类 | 功能 |
 |------|------|
-| 本地使用，默认配置 | `npm run dev` |
-| 指定端口 | `PORT=8080 npm run dev` |
-| 管理指定目录的文件 | `STORAGE_ROOT=/home/me/docs npm run dev` |
-| 服务器部署 | `PORT=80 STORAGE_ROOT=/data npm start` |
-| 系统服务 + 开机自启 | `bash install.sh --port 80 --storage /data --service` |
+| **浏览** | 网格/列表视图 · 面包屑导航 · 隐藏文件过滤 · 排序（名称/日期/大小/类型） · 文件搜索 |
+| **操作** | 拖拽上传（带进度条） · 下载 · 新建文件夹 · 行内重命名 · 删除（二次确认） · 拖动移动文件 · 多选（Ctrl/Shift） |
+| **预览** | 图片缩略图（WebP） · 图片全屏 · 文本预览（带行号，50+ 格式） |
+| **交互** | 右键菜单 · 快捷键 · Toast 通知 · 壁纸主题 · 响应式设计 · 动效 |
+| **安全** | 登录认证 · 路径遍历防护 · 登录限流 · Session 自动清理 |
+| **部署** | config.json 统一配置 · systemd 服务一键安装 · curl 远程安装 |
 
-## 📡 API 接口
+## 🚀 快速开始
 
-所有文件路径均为相对于 `STORAGE_ROOT` 的路径，以 `/` 开头。
+```bash
+# curl 一行安装
+curl -sSL https://raw.githubusercontent.com/nonwesjoe/file_browser/main/bootstrap.sh | bash
 
-| 方法 | 路径 | 说明 | 参数 |
-|------|------|------|------|
-| `GET` | `/api/config` | 获取服务器配置 | — |
-| `GET` | `/api/files` | 列出目录内容 | `?path=/dir` |
-| `GET` | `/api/thumbnail` | 获取图片缩略图 (WebP) | `?path=/image.jpg` |
-| `GET` | `/api/preview` | 获取文本文件内容 | `?path=/file.txt` |
-| `GET` | `/api/download` | 下载文件 | `?path=/file` |
-| `POST` | `/api/upload` | 上传文件 | FormData: `targetPath`, `files` |
-| `POST` | `/api/mkdir` | 创建文件夹 | JSON: `{ parentPath, name }` |
-| `POST` | `/api/rename` | 重命名 | JSON: `{ oldPath, newName }` |
-| `DELETE` | `/api/delete` | 删除文件/文件夹 | JSON: `{ path }` |
-
-### 响应格式
-
-成功：
-
-```json
-{ "success": true, "items": [...] }
+# 启动
+cd ~/web-file-manager && npm run dev
 ```
 
-失败：
+浏览器打开 **http://localhost:3000**，默认账号密码 `admin`。
+
+## ⚙️ 配置
+
+所有配置集中在 `config.json`，修改后重启生效：
 
 ```json
-{ "error": "错误信息" }
+{
+  "username": "admin",
+  "password": "admin",
+  "port": 3000,
+  "host": "0.0.0.0",
+  "storageRoot": "./storage",
+  "theme": {
+    "primary": "#4f46e5",
+    "danger": "#ef4444",
+    "success": "#10b981",
+    "bg": "#f0f2f5",
+    "logoText": "Web 文件管理器"
+  }
+}
 ```
+
+| 字段 | 默认值 | 说明 |
+|------|--------|------|
+| `username` | `admin` | 登录账号 |
+| `password` | `admin` | 登录密码 |
+| `port` | `3000` | 监听端口 |
+| `host` | `0.0.0.0` | 绑定地址（`0.0.0.0` 所有网卡，`127.0.0.1` 仅本机） |
+| `storageRoot` | `./storage` | 文件存储根目录 |
+| `theme.*` | — | 主题配色（主色、危险色、成功色、背景色、标题文字） |
+
+> 环境变量 `PORT` 和 `STORAGE_ROOT` 可覆盖 config.json 中的对应值。
+
+## ▶️ 启动方式
+
+```bash
+# 开发模式（自动编译）
+npm run dev
+
+# 生产模式
+npm run build && npm start
+
+# 安装为 systemd 服务（开机自启）
+sudo bash install.sh --service --port 80 --storage /data/files
+
+# 卸载服务
+sudo bash install.sh --remove
+```
+
+## ⌨️ 快捷键
+
+| 快捷键 | 功能 |
+|--------|------|
+| `/` | 聚焦搜索框 |
+| `Delete` | 删除选中文件 |
+| `F2` | 重命名选中文件 |
+| `Backspace` | 返回上级目录 |
+| `Ctrl+A` | 全选 |
+| `Ctrl+Click` | 多选 |
+| `Shift+Click` | 范围选择 |
+| `Esc` | 关闭弹窗 / 退出搜索 |
+| 双击 | 打开文件夹 / 预览文件 |
+
+## 📡 API
+
+所有文件路径相对于 `storageRoot`，以 `/` 开头。需登录后携带 Cookie 访问。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `POST` | `/api/login` | 登录 `{ username, password }` |
+| `POST` | `/api/logout` | 退出 |
+| `GET` | `/api/auth` | 检查登录状态 |
+| `GET` | `/api/theme` | 获取主题（无需登录） |
+| `GET` | `/api/config` | 获取完整配置 |
+| `GET` | `/api/files?path=/` | 列出目录 |
+| `GET` | `/api/thumbnail?path=` | 图片缩略图 |
+| `GET` | `/api/preview?path=` | 文本预览 |
+| `GET` | `/api/download?path=` | 下载文件 |
+| `POST` | `/api/upload` | 上传（FormData） |
+| `POST` | `/api/mkdir` | 新建文件夹 |
+| `POST` | `/api/rename` | 重命名 |
+| `POST` | `/api/move` | 移动文件 |
+| `DELETE` | `/api/delete` | 删除 |
 
 ## 🏗️ 项目结构
 
 ```
 web-file-manager/
-├── src/
-│   └── server.ts              # 后端服务（路由 + 安全 + 文件操作）
+├── src/server.ts           # 后端（路由 + 认证 + 安全 + 文件操作）
 ├── public/
-│   ├── index.html             # 页面结构
-│   ├── css/style.css          # 样式
-│   └── js/app.js              # 前端交互逻辑
-├── storage/                   # 默认文件存储目录
-├── install.sh                 # 一键安装脚本
-├── bootstrap.sh               # 远程安装引导脚本
-├── uninstall.sh               # 卸载脚本
-├── start.sh                   # 启动脚本
+│   ├── index.html          # 主页
+│   ├── login.html          # 登录页
+│   ├── css/style.css       # 样式 + 动效
+│   └── js/app.js           # 前端逻辑
+├── config.json             # 配置文件
+├── storage/                # 文件存储目录
+├── install.sh              # 安装（可选 --service）
+├── bootstrap.sh            # curl 远程安装引导
+├── uninstall.sh            # 完整卸载
+├── start.sh                # 快速启动
 ├── package.json
 ├── tsconfig.json
-└── CLAUDE.md                  # 开发指引
+├── CLAUDE.md               # 开发指引
+└── LICENSE
 ```
 
-### 技术栈
+## 🔒 安全
 
-| 层 | 技术 | 用途 |
-|----|------|------|
-| 后端 | Express 5 + TypeScript | HTTP 服务、RESTful API |
-| 文件上传 | Multer | multipart/form-data 解析 |
-| 图片处理 | Sharp | 缩略图生成（WebP 格式，256px） |
-| 前端 | 原生 HTML/CSS/JS | 零依赖单页应用 |
-
-## 🔒 安全设计
-
-- **路径隔离**：`safePath()` 函数是唯一的安全边界，所有用户输入的路径在访问文件系统前都经过此函数校验
-- **路径遍历防护**：解析后的绝对路径必须以 `STORAGE_ROOT` 开头，否则返回 403
-- **删除保护**：存储根目录本身不可删除
-- **无敏感信息**：不记录、不暴露服务器文件系统结构
+- **登录认证**：Cookie Session，7 天有效期
+- **登录限流**：5 次失败锁定 5 分钟
+- **路径隔离**：`safePath()` 校验所有用户路径
+- **路径遍历防护**：`../../etc/passwd` 等攻击返回 403
+- **Session 清理**：每 10 分钟自动清除过期 session
+- **systemd 加固**：`NoNewPrivileges`、`ProtectSystem=strict`
 
 ## 🛠️ 开发
 
 ```bash
-# 类型检查（不输出文件）
-npx tsc --noEmit
-
-# 编译
-npm run build
-
-# 运行编译后的版本
-npm start
+npx tsc --noEmit    # 类型检查
+npm run build       # 编译
+npm start           # 运行
 ```
 
-项目使用 Express 5（非 4），异步路由需要通过 `asyncHandler()` 包装。新增文件操作路由时，必须调用 `safePath()` 校验路径。
+Express 5 + TypeScript，异步路由用 `asyncHandler()` 包装，新增文件路由必须调用 `safePath()`。
 
 ## 📄 许可证
 
