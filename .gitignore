@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.cache_thumbs/
+.tmp_uploads/
+
+# User data — keep the directory, ignore contents
+storage/*
+!storage/.gitkeep

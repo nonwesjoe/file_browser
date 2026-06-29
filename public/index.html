@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web 文件管理器</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h1 class="logo">📁 文件管理器</h1>
+        <span id="storage-badge" class="storage-badge" title="当前存储路径"></span>
+      </div>
+      <div class="header-right">
+        <button id="btn-upload" class="btn btn-primary" title="上传文件">
+          <span class="icon">⬆</span> 上传
+        </button>
+        <button id="btn-mkdir" class="btn btn-secondary" title="新建文件夹">
+          <span class="icon">➕</span> 新建文件夹
+        </button>
+      </div>
+    </header>
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb" id="breadcrumb"></nav>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span id="item-count" class="item-count"></span>
+      </div>
+      <div class="toolbar-right">
+        <button id="btn-grid" class="btn btn-icon active" title="网格视图">▦</button>
+        <button id="btn-list" class="btn btn-icon" title="列表视图">☰</button>
+      </div>
+    </div>
+
+    <!-- Drop zone overlay -->
+    <div id="drop-overlay" class="drop-overlay hidden">
+      <div class="drop-overlay-content">
+        <span class="drop-icon">📂</span>
+        <p>拖放文件到这里上传</p>
+      </div>
+    </div>
+
+    <!-- File list -->
+    <main id="file-container" class="file-container grid-view">
+      <!-- Files rendered here by JS -->
+    </main>
+
+    <!-- Loading overlay -->
+    <div id="loading" class="loading-overlay hidden">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty-state" class="empty-state hidden">
+      <span class="empty-icon">📂</span>
+      <p>此文件夹为空</p>
+      <p class="empty-hint">拖放文件到此处或点击"上传"按钮</p>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Modal: confirm delete -->
+  <div id="modal-delete" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h3>确认删除</h3>
+      <p id="delete-target-name"></p>
+      <p class="modal-warning">此操作不可撤销！</p>
+      <div class="modal-actions">
+        <button id="btn-cancel-delete" class="btn btn-secondary">取消</button>
+        <button id="btn-confirm-delete" class="btn btn-danger">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: new folder -->
+  <div id="modal-mkdir" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h3>新建文件夹</h3>
+      <input id="mkdir-name" type="text" class="input" placeholder="文件夹名称" autofocus>
+      <div class="modal-actions">
+        <button id="btn-cancel-mkdir" class="btn btn-secondary">取消</button>
+        <button id="btn-confirm-mkdir" class="btn btn-primary">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: preview (image / text) -->
+  <div id="modal-preview" class="modal modal-preview hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <div class="preview-header">
+        <h3 id="preview-title"></h3>
+        <span id="preview-meta" class="preview-meta"></span>
+      </div>
+      <div id="preview-body" class="preview-body"></div>
+      <div id="preview-truncated" class="preview-truncated hidden"></div>
+      <div class="preview-footer">
+        <button id="btn-preview-download" class="btn btn-secondary">⬇ 下载</button>
+        <button id="btn-preview-close" class="btn btn-primary">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input for upload -->
+  <input id="file-input" type="file" multiple hidden>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
