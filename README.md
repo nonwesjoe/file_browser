@@ -33,31 +33,55 @@
 
 - Node.js ≥ 18
 
-### 安装运行
+### 一键安装
 
 ```bash
-# 克隆项目
-git clone <your-repo-url> web-file-manager
+# 方式一：curl 一行命令（推荐）
+curl -sSL https://raw.githubusercontent.com/nonwesjoe/file_browser/main/bootstrap.sh | bash
+
+# 方式二：手动克隆
+git clone https://github.com/nonwesjoe/file_browser.git web-file-manager
 cd web-file-manager
+bash install.sh
+```
 
-# 安装依赖
-npm install
+安装完成后启动：
 
-# 启动（开发模式，自动编译）
-npm run dev
+```bash
+cd ~/web-file-manager && npm run dev
 ```
 
 打开浏览器访问 **http://localhost:3000** 即可使用。
 
-### 其他启动方式
+### 安装脚本选项
 
 ```bash
-# 编译后以生产模式运行
-npm run build
-npm start
+# 基本安装
+bash install.sh
 
 # 自定义端口和存储目录
-PORT=8080 STORAGE_ROOT=/data/files npm run dev
+bash install.sh --port 8080 --storage /data/files
+
+# 安装为 systemd 服务（开机自启）
+bash install.sh --service
+
+# 完整示例：自定义端口 + 存储 + 服务
+bash install.sh --port 8080 --storage /mnt/nas/shared --service
+
+# curl 一行命令 + 自定义参数
+PORT=8080 INSTALL_DIR=/opt/file-manager curl -sSL https://raw.githubusercontent.com/nonwesjoe/file_browser/main/bootstrap.sh | bash
+```
+
+安装脚本自动完成：检查 Node.js 版本 → 安装依赖 → 编译项目 → 创建目录 → （可选）配置 systemd 服务。
+
+### 卸载
+
+```bash
+# 移除服务和构建产物（保留用户文件）
+bash uninstall.sh
+
+# 彻底删除
+rm -rf web-file-manager
 ```
 
 ## ⚙️ 配置
