@@ -1,0 +1,14 @@
+{
+  "username": "admin",
+  "password": "admin",
+  "port": 3000,
+  "host": "0.0.0.0",
+  "storageRoot": "./storage",
+  "theme": {
+    "primary": "#4f46e5",
+    "danger": "#ef4444",
+    "success": "#10b981",
+    "bg": "#f0f2f5",
+    "logoText": "Web 文件管理器"
+  }
+}

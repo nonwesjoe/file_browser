@@ -8,7 +8,7 @@
 
 | 分类 | 功能 | 说明 |
 |------|------|------|
-| **文件浏览** | 网格 / 列表视图 | 一键切换，自动记忆 |
+| **文件浏览** | 网格 / 列表视图 | 一键切换 |
 | | 面包屑导航 | 点击任意层级快速跳转 |
 | | 文件信息 | 显示文件名、大小（自适应 B/KB/MB/GB）、修改时间、类型图标 |
 | **文件操作** | 上传 | 拖拽上传 + 点击选择，支持批量上传 |
@@ -16,92 +16,120 @@
 | | 新建文件夹 | 弹窗输入名称 |
 | | 重命名 | 行内编辑，Enter 确认，Esc 取消 |
 | | 删除 | 二次确认弹窗，防止误删 |
-| **预览** | 图片缩略图 | 自动生成 WebP 缩略图，支持 jpg/png/gif/webp/svg/avif 等格式 |
-| | 文本预览 | 点击文本文件弹出代码风格预览窗口，带行号，支持 50+ 种文件格式 |
+| **预览** | 图片缩略图 | 自动生成 WebP 缩略图，支持 jpg/png/gif/webp/svg/avif |
+| | 文本预览 | 点击文本文件弹出预览窗口，带行号，支持 50+ 种格式 |
 | | 图片全屏 | 点击图片查看原始尺寸 |
 | **安全** | 路径隔离 | 所有操作限制在指定存储目录内 |
 | | 路径遍历防护 | `../../etc/passwd` 等攻击自动拦截 |
-| | 删除保护 | 不允许删除存储根目录 |
 | **体验** | 响应式设计 | 适配桌面端和移动端 |
 | | Toast 通知 | 操作成功/失败实时反馈 |
-| | Loading 状态 | 所有异步操作有加载指示 |
 | | 键盘支持 | Escape 关闭弹窗，Enter 提交表单 |
 
-## 🚀 快速开始
+## 🚀 安装
 
 ### 环境要求
 
 - Node.js ≥ 18
 
-### 一键安装
+### 方式一：curl 一行命令（推荐）
 
 ```bash
-# 方式一：curl 一行命令（推荐）
 curl -sSL https://raw.githubusercontent.com/nonwesjoe/file_browser/main/bootstrap.sh | bash
+```
 
-# 方式二：手动克隆
+### 方式二：手动克隆
+
+```bash
 git clone https://github.com/nonwesjoe/file_browser.git web-file-manager
 cd web-file-manager
 bash install.sh
 ```
 
-安装完成后启动：
+安装脚本自动完成：检查 Node.js 版本 → 安装依赖 → 编译项目 → 创建存储目录。
+
+## ▶️ 启动
+
+安装完成后，进入项目目录启动服务：
 
 ```bash
-cd ~/web-file-manager && npm run dev
+cd ~/web-file-manager
+
+# 启动（默认端口 3000，默认存储目录 ./storage）
+npm run dev
 ```
 
-打开浏览器访问 **http://localhost:3000** 即可使用。
+浏览器打开 **http://localhost:3000** 即可使用。
 
-### 安装脚本选项
+### 设置监听端口
 
 ```bash
-# 基本安装
-bash install.sh
-
-# 自定义端口和存储目录
-bash install.sh --port 8080 --storage /data/files
-
-# 安装为 systemd 服务（开机自启）
-bash install.sh --service
-
-# 完整示例：自定义端口 + 存储 + 服务
-bash install.sh --port 8080 --storage /mnt/nas/shared --service
-
-# curl 一行命令 + 自定义参数
-PORT=8080 INSTALL_DIR=/opt/file-manager curl -sSL https://raw.githubusercontent.com/nonwesjoe/file_browser/main/bootstrap.sh | bash
+# 使用 8080 端口
+PORT=8080 npm run dev
 ```
 
-安装脚本自动完成：检查 Node.js 版本 → 安装依赖 → 编译项目 → 创建目录 → （可选）配置 systemd 服务。
+### 设置存储根目录
 
-### 卸载
+`STORAGE_ROOT` 决定了文件管理器能访问哪个文件夹。用户在浏览器中看到的所有文件都来自这个目录。
 
 ```bash
-# 移除服务和构建产物（保留用户文件）
-bash uninstall.sh
+# 管理 /home/user/documents 目录下的文件
+STORAGE_ROOT=/home/user/documents npm run dev
 
-# 彻底删除
-rm -rf web-file-manager
+# 管理 NAS 挂载目录
+STORAGE_ROOT=/mnt/nas/shared npm run dev
+
+# 管理外接硬盘
+STORAGE_ROOT=/media/usb-drive npm run dev
 ```
 
-## ⚙️ 配置
+> **注意**：`STORAGE_ROOT` 支持绝对路径和相对路径。相对路径是相对于项目根目录。如果目录不存在会自动创建。
 
-通过环境变量配置，无需修改代码：
+### 同时设置端口和存储目录
+
+```bash
+PORT=8080 STORAGE_ROOT=/data/files npm run dev
+```
+
+### 生产模式运行
+
+```bash
+# 先编译
+npm run build
+
+# 再启动（不自动编译，性能更好）
+PORT=80 STORAGE_ROOT=/data/files npm start
+```
+
+### 安装为系统服务（开机自启）
+
+```bash
+# 安装时指定端口和存储目录
+bash install.sh --port 80 --storage /data/files --service
+
+# 管理服务
+sudo systemctl start web-file-manager    # 启动
+sudo systemctl stop web-file-manager     # 停止
+sudo systemctl restart web-file-manager  # 重启
+sudo systemctl status web-file-manager   # 查看状态
+sudo journalctl -u web-file-manager -f   # 查看日志
+```
+
+## ⚙️ 配置汇总
 
 | 环境变量 | 默认值 | 说明 |
 |----------|--------|------|
 | `PORT` | `3000` | 服务器监听端口 |
-| `STORAGE_ROOT` | `./storage` | 文件存储根目录（支持绝对路径和相对路径） |
+| `STORAGE_ROOT` | `./storage` | 文件存储根目录，即用户在浏览器中看到的"根目录" |
 
-示例：
+### 常见场景示例
 
-```bash
-# 将存储指向 NAS 挂载目录
-STORAGE_ROOT=/mnt/nas/shared npm start
-
-# 使用 80 端口（可能需要 sudo）
-PORT=80 sudo npm start
-```
+| 场景 | 命令 |
+|------|------|
+| 本地使用，默认配置 | `npm run dev` |
+| 指定端口 | `PORT=8080 npm run dev` |
+| 管理指定目录的文件 | `STORAGE_ROOT=/home/me/docs npm run dev` |
+| 服务器部署 | `PORT=80 STORAGE_ROOT=/data npm start` |
+| 系统服务 + 开机自启 | `bash install.sh --port 80 --storage /data --service` |
 
 ## 📡 API 接口
 
@@ -141,12 +169,15 @@ web-file-manager/
 │   └── server.ts              # 后端服务（路由 + 安全 + 文件操作）
 ├── public/
 │   ├── index.html             # 页面结构
-│   ├── css/style.css          # 样式（CSS 变量主题）
+│   ├── css/style.css          # 样式
 │   └── js/app.js              # 前端交互逻辑
 ├── storage/                   # 默认文件存储目录
-├── start.sh                   # 启动脚本（自动编译 + 运行）
-├── tsconfig.json
+├── install.sh                 # 一键安装脚本
+├── bootstrap.sh               # 远程安装引导脚本
+├── uninstall.sh               # 卸载脚本
+├── start.sh                   # 启动脚本
 ├── package.json
+├── tsconfig.json
 └── CLAUDE.md                  # 开发指引
 ```
 

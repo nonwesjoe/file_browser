@@ -8,11 +8,21 @@
 </head>
 <body>
   <div id="app">
+    <!-- Wallpaper layer -->
+    <div id="wallpaper" class="wallpaper"></div>
+
     <!-- Header -->
     <header class="header">
       <div class="header-left">
         <h1 class="logo">📁 文件管理器</h1>
         <span id="storage-badge" class="storage-badge" title="当前存储路径"></span>
+      </div>
+      <div class="header-center">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input id="search-input" type="text" class="search-input" placeholder="搜索文件…">
+          <kbd class="search-kbd">/</kbd>
+        </div>
       </div>
       <div class="header-right">
         <button id="btn-upload" class="btn btn-primary" title="上传文件">
@@ -21,6 +31,8 @@
         <button id="btn-mkdir" class="btn btn-secondary" title="新建文件夹">
           <span class="icon">➕</span> 新建文件夹
         </button>
+        <button id="btn-settings" class="btn btn-icon" title="设置">⚙️</button>
+        <button id="btn-logout" class="btn btn-icon" title="退出登录">🚪</button>
       </div>
     </header>
 
@@ -31,11 +43,37 @@
     <div class="toolbar">
       <div class="toolbar-left">
         <span id="item-count" class="item-count"></span>
+        <label class="toggle-label" title="显示隐藏文件">
+          <input type="checkbox" id="toggle-dotfiles"> 显示隐藏文件
+        </label>
       </div>
       <div class="toolbar-right">
+        <select id="sort-select" class="sort-select" title="排序方式">
+          <option value="name-asc">名称 A→Z</option>
+          <option value="name-desc">名称 Z→A</option>
+          <option value="date-desc">最新修改</option>
+          <option value="date-asc">最早修改</option>
+          <option value="size-desc">最大文件</option>
+          <option value="size-asc">最小文件</option>
+          <option value="type-asc">按类型</option>
+        </select>
         <button id="btn-grid" class="btn btn-icon active" title="网格视图">▦</button>
         <button id="btn-list" class="btn btn-icon" title="列表视图">☰</button>
       </div>
+    </div>
+
+    <!-- Multi-select action bar -->
+    <div id="multi-bar" class="multi-bar hidden">
+      <span id="multi-count" class="multi-count"></span>
+      <button id="multi-download" class="btn btn-secondary btn-sm">⬇ 下载</button>
+      <button id="multi-delete" class="btn btn-danger btn-sm">🗑 删除</button>
+      <button id="multi-clear" class="btn btn-secondary btn-sm">✕ 取消选择</button>
+    </div>
+
+    <!-- Upload progress bar -->
+    <div id="upload-progress" class="upload-progress hidden">
+      <div class="upload-progress-bar" id="upload-progress-bar"></div>
+      <span class="upload-progress-text" id="upload-progress-text">上传中…</span>
     </div>
 
     <!-- Drop zone overlay -->
@@ -46,10 +84,13 @@
       </div>
     </div>
 
+    <!-- Drag-move hint -->
+    <div id="drag-move-hint" class="drag-move-hint hidden">
+      <span>📁 移动到: <strong id="drag-target-name"></strong></span>
+    </div>
+
     <!-- File list -->
-    <main id="file-container" class="file-container grid-view">
-      <!-- Files rendered here by JS -->
-    </main>
+    <main id="file-container" class="file-container grid-view"></main>
 
     <!-- Loading overlay -->
     <div id="loading" class="loading-overlay hidden">
@@ -59,9 +100,32 @@
     <!-- Empty state -->
     <div id="empty-state" class="empty-state hidden">
       <span class="empty-icon">📂</span>
-      <p>此文件夹为空</p>
+      <p id="empty-text">此文件夹为空</p>
       <p class="empty-hint">拖放文件到此处或点击"上传"按钮</p>
     </div>
+  </div>
+
+  <!-- Context menu (right-click) -->
+  <div id="context-menu" class="context-menu hidden">
+    <div class="ctx-item" data-action="open">📂 打开</div>
+    <div class="ctx-item" data-action="preview">👁 预览</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" data-action="download">⬇ 下载</div>
+    <div class="ctx-item" data-action="rename">✏️ 重命名</div>
+    <div class="ctx-item" data-action="copy-path">📋 复制路径</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item ctx-danger" data-action="delete">🗑 删除</div>
+  </div>
+
+  <!-- Empty-area context menu -->
+  <div id="context-menu-empty" class="context-menu hidden">
+    <div class="ctx-item" data-action="upload">⬆ 上传文件</div>
+    <div class="ctx-item" data-action="mkdir">➕ 新建文件夹</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" data-action="paste">📋 粘贴</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" data-action="refresh">🔄 刷新</div>
+    <div class="ctx-item" data-action="select-all">☑️ 全选</div>
   </div>
 
   <!-- Toast container -->
@@ -94,7 +158,7 @@
     </div>
   </div>
 
-  <!-- Modal: preview (image / text) -->
+  <!-- Modal: preview -->
   <div id="modal-preview" class="modal modal-preview hidden">
     <div class="modal-backdrop"></div>
     <div class="modal-content">
@@ -107,6 +171,44 @@
       <div class="preview-footer">
         <button id="btn-preview-download" class="btn btn-secondary">⬇ 下载</button>
         <button id="btn-preview-close" class="btn btn-primary">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: settings -->
+  <div id="modal-settings" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h3>⚙️ 设置</h3>
+      <div class="settings-group">
+        <label class="settings-label">壁纸背景</label>
+        <div class="wallpaper-options">
+          <button class="wp-btn active" data-wp="none" title="默认">无</button>
+          <button class="wp-btn" data-wp="gradient-1" title="渐变蓝紫">🌊</button>
+          <button class="wp-btn" data-wp="gradient-2" title="渐变暖色">🌅</button>
+          <button class="wp-btn" data-wp="gradient-3" title="渐变绿意">🌿</button>
+          <button class="wp-btn" data-wp="gradient-4" title="星空深色">🌌</button>
+          <button class="wp-btn" data-wp="custom" title="自定义图片">🖼️</button>
+        </div>
+        <input id="wp-custom-url" type="text" class="input mt-8" placeholder="输入图片 URL（支持 https://）" style="display:none">
+        <input id="wp-custom-file" type="file" accept="image/*" style="display:none">
+        <button id="wp-upload-btn" class="btn btn-secondary btn-sm mt-8" style="display:none">选择本地图片</button>
+      </div>
+      <div class="settings-group">
+        <label class="settings-label">快捷键说明</label>
+        <div class="shortcuts-help">
+          <div><kbd>/</kbd> 搜索</div>
+          <div><kbd>Delete</kbd> 删除选中</div>
+          <div><kbd>F2</kbd> 重命名选中</div>
+          <div><kbd>Backspace</kbd> 返回上级</div>
+          <div><kbd>Ctrl+A</kbd> 全选</div>
+          <div><kbd>Ctrl+Click</kbd> 多选</div>
+          <div><kbd>Shift+Click</kbd> 范围选择</div>
+          <div><kbd>Esc</kbd> 关闭弹窗</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-close-settings" class="btn btn-primary">完成</button>
       </div>
     </div>
   </div>
