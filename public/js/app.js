@@ -18,6 +18,8 @@
   let wallpaper = localStorage.getItem('wallpaper') || 'none';
   let wallpaperUrl = localStorage.getItem('wallpaperUrl') || '';
   let clipboard = null; // { paths: [], action: 'copy' | 'cut' }
+  let trashCount = 0;
+  let previewTextCache = '';  // for the copy button
 
   // ── DOM refs ───────────────────────────────────────────────────────────────
   const $ = (s) => document.querySelector(s);
@@ -48,6 +50,8 @@
   const btnGrid      = $('#btn-grid');
   const btnList      = $('#btn-list');
   const btnSettings  = $('#btn-settings');
+  const btnTrash     = $('#btn-trash');
+  const trashCountEl = $('#trash-count');
   const sortSelect   = $('#sort-select');
   const dotToggle    = $('#toggle-dotfiles');
 
@@ -55,8 +59,10 @@
   const modalMkdir   = $('#modal-mkdir');
   const modalPreview = $('#modal-preview');
   const modalSettings = $('#modal-settings');
+  const modalTrash   = $('#modal-trash');
   const deleteTargetName = $('#delete-target-name');
   const mkdirNameInput   = $('#mkdir-name');
+  const bcJumpBtn    = $('#bc-jump');
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function showLoading() { loading.classList.remove('hidden'); }
@@ -93,6 +99,62 @@
     const d = new Date(iso);
     const p = (n) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+
+  // ── Syntax highlighting (highlight.js via CDN) ───────────────────────────
+  // Map file extensions to highlight.js language IDs. Falls back to 'plaintext'
+  // when hljs is not loaded (e.g., offline) — text is still readable.
+  const HLJS_LANG_MAP = {
+    js: 'javascript', mjs: 'javascript', cjs: 'javascript', jsx: 'javascript',
+    ts: 'typescript', tsx: 'typescript',
+    py: 'python', rb: 'ruby', java: 'java', kt: 'kotlin', swift: 'swift',
+    c: 'c', h: 'c', cpp: 'cpp', cxx: 'cpp', cc: 'cpp', hpp: 'cpp',
+    cs: 'csharp', go: 'go', rs: 'rust', php: 'php',
+    html: 'xml', htm: 'xml', xml: 'xml', svg: 'xml',
+    css: 'css', scss: 'scss', sass: 'scss', less: 'less',
+    sh: 'bash', bash: 'bash', zsh: 'bash', fish: 'bash',
+    json: 'json', yaml: 'yaml', yml: 'yaml', toml: 'ini', ini: 'ini',
+    md: 'markdown', markdown: 'markdown',
+    sql: 'sql', graphql: 'graphql', gql: 'graphql',
+    vue: 'xml', svelte: 'xml', astro: 'xml',
+    log: 'plaintext', txt: 'plaintext', env: 'plaintext',
+    csv: 'plaintext', tsv: 'plaintext',
+    dockerfile: 'dockerfile', makefile: 'makefile',
+    lua: 'lua', perl: 'perl', pl: 'perl', r: 'r',
+    ex: 'elixir', exs: 'elixir', erl: 'erlang', hs: 'haskell',
+  };
+  function detectHljsLang(name) {
+    const ext = name.split('.').pop().toLowerCase();
+    return HLJS_LANG_MAP[ext] || 'plaintext';
+  }
+  function highlightCode(text, name) {
+    if (!window.hljs) return null;  // CDN unavailable; caller falls back to plain
+    try {
+      const lang = detectHljsLang(name);
+      if (lang === 'plaintext') return null;
+      const result = window.hljs.highlight(text, { language: lang, ignoreIllegals: true });
+      return result.value;
+    } catch { return null; }
+  }
+
+  // Copy text to clipboard with fallback for non-secure contexts (http://LAN).
+  async function copyToClipboard(text) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch { /* fall through */ }
+    // Fallback: hidden textarea + execCommand
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch { ok = false; }
+    ta.remove();
+    return ok;
   }
 
   // ── API ────────────────────────────────────────────────────────────────────
@@ -154,17 +216,49 @@
   // ── Breadcrumb ─────────────────────────────────────────────────────────────
   function renderBreadcrumb() {
     const parts = currentPath.split('/').filter(Boolean);
-    let html = `<a href="#" data-path="/">🏠 根目录</a>`;
+    const segs = [{ name: '🏠 根目录', path: '/' }];
     let acc = '';
     for (const part of parts) {
       acc += '/' + part;
-      html += `<span class="sep">/</span>`;
-      if (acc === currentPath) html += `<span class="current">${escapeHtml(part)}</span>`;
-      else html += `<a href="#" data-path="${acc}">${escapeHtml(part)}</a>`;
+      segs.push({ name: part, path: acc });
     }
-    breadcrumb.innerHTML = html;
-    breadcrumb.querySelectorAll('a').forEach(a =>
-      a.addEventListener('click', e => { e.preventDefault(); navigateTo(a.dataset.path); }));
+    breadcrumb.innerHTML = segs.map((s, i) => {
+      const isLast = i === segs.length - 1;
+      const cls = isLast ? 'bc-seg current' : 'bc-seg';
+      return `<button class="${cls}" data-path="${s.path}" title="${escapeHtml(s.path)}">${escapeHtml(s.name)}</button>` +
+             (isLast ? '' : '<span class="sep">/</span>');
+    }).join('') + `<button class="bc-jump" id="bc-jump" title="跳转到路径">📍</button>`;
+    breadcrumb.querySelectorAll('.bc-seg').forEach(b =>
+      b.addEventListener('click', () => navigateTo(b.dataset.path)));
+    const jump = $('#bc-jump');
+    if (jump) jump.addEventListener('click', openPathJump);
+  }
+
+  // Path-jump input: lets user paste/type an absolute path to navigate.
+  function openPathJump() {
+    // Toggle: if input already visible, blur it.
+    const existing = $('#bc-jump-input');
+    if (existing) { existing.remove(); return; }
+    const inp = document.createElement('input');
+    inp.id = 'bc-jump-input';
+    inp.type = 'text';
+    inp.className = 'bc-jump-input';
+    inp.placeholder = '输入路径回车跳转 (例如 /docs/reports)';
+    inp.value = currentPath;
+    breadcrumb.appendChild(inp);
+    inp.focus();
+    inp.select();
+    const commit = () => {
+      const v = inp.value.trim();
+      inp.remove();
+      if (!v || v === currentPath) return;
+      navigateTo(v.startsWith('/') ? v : '/' + v);
+    };
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); commit(); }
+      else if (e.key === 'Escape') inp.remove();
+    });
+    inp.addEventListener('blur', commit);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -427,6 +521,12 @@
 
   // ── Navigation ─────────────────────────────────────────────────────────────
   async function navigateTo(dirPath) {
+    // Special path: /.trash opens the trash modal instead of browsing.
+    if (dirPath === '/.trash' || dirPath === '.trash') {
+      openTrashModal();
+      history.pushState({ path: dirPath }, '', `#${dirPath}`);
+      return;
+    }
     showLoading(); selected.clear(); searchQuery = ''; searchInput.value = '';
     try {
       const data = await apiGet(`/api/files?path=${encodeURIComponent(dirPath)}`);
@@ -466,24 +566,39 @@
     const metaEl  = $('#preview-meta');
     const bodyEl  = $('#preview-body');
     const truncEl = $('#preview-truncated');
+    const copyBtn = $('#btn-preview-copy');
 
     titleEl.textContent = name; metaEl.textContent = '';
     bodyEl.innerHTML = '<div class="spinner"></div>';
     truncEl.classList.add('hidden');
     modalPreview.classList.remove('hidden');
+    previewTextCache = '';
 
     $('#btn-preview-download').onclick = () => { window.location.href = `/api/download?path=${encodeURIComponent(filePath)}`; };
+    copyBtn.onclick = async () => {
+      if (!previewTextCache) { toast('无内容可复制', 'info'); return; }
+      const ok = await copyToClipboard(previewTextCache);
+      toast(ok ? '已复制到剪贴板' : '复制失败', ok ? 'success' : 'error');
+    };
 
     if (isImage) {
+      copyBtn.style.display = 'none';
       bodyEl.innerHTML = `<img src="/api/download?path=${encodeURIComponent(filePath)}" alt="${escapeHtml(name)}">`;
       bodyEl.style.background = '#1a1a2e';
     } else {
+      copyBtn.style.display = '';
       try {
         const data = await apiGet(`/api/preview?path=${encodeURIComponent(filePath)}`);
         metaEl.textContent = data.sizeFormatted;
-        const lines = data.content.split('\n');
-        bodyEl.innerHTML = `<div class="text-content">${lines.map((l, i) =>
-          `<span class="line-num">${i+1}</span>${escapeHtml(l)}`).join('\n')}</div>`;
+        previewTextCache = data.content;
+        const highlighted = highlightCode(data.content, name);
+        if (highlighted) {
+          bodyEl.innerHTML = `<pre class="hljs-preview"><code class="hljs language-${detectHljsLang(name)}">${highlighted}</code></pre>`;
+        } else {
+          const lines = data.content.split('\n');
+          bodyEl.innerHTML = `<div class="text-content">${lines.map((l, i) =>
+            `<span class="line-num">${i+1}</span>${escapeHtml(l)}`).join('\n')}</div>`;
+        }
         bodyEl.style.background = '#1a1a2e';
         if (data.truncated) { truncEl.textContent = `⚠️ 文件过大，仅显示前 ${data.maxPreview}`; truncEl.classList.remove('hidden'); }
       } catch (err) { bodyEl.innerHTML = `<div style="padding:40px;color:#ff6b6b;">加载失败: ${escapeHtml(err.message)}</div>`; }
@@ -562,20 +677,139 @@
   });
   mkdirNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') $('#btn-confirm-mkdir').click(); if (e.key === 'Escape') modalMkdir.classList.add('hidden'); });
 
-  // ── Delete ─────────────────────────────────────────────────────────────────
+  // ── Trash ──────────────────────────────────────────────────────────────────
+  async function refreshTrashCount() {
+    try {
+      const d = await apiGet('/api/trash');
+      trashCount = d.count || 0;
+      refreshTrashBadge();
+    } catch { /* ignore */ }
+  }
+
+  function refreshTrashBadge() {
+    if (trashCount > 0) {
+      trashCountEl.textContent = trashCount > 99 ? '99+' : String(trashCount);
+      trashCountEl.classList.remove('hidden');
+    } else {
+      trashCountEl.classList.add('hidden');
+    }
+  }
+
+  async function openTrashModal() {
+    modalTrash.classList.remove('hidden');
+    await renderTrashView();
+  }
+
+  async function renderTrashView() {
+    const body = $('#trash-body');
+    const meta = $('#trash-meta');
+    body.innerHTML = '<div class="spinner"></div>';
+    try {
+      const d = await apiGet('/api/trash');
+      trashCount = d.count || 0;
+      refreshTrashBadge();
+      const totalMb = (d.totalBytes / 1024 / 1024).toFixed(2);
+      meta.textContent = `${d.count} 项 · 共 ${totalMb} MB`;
+
+      if (d.items.length === 0) {
+        body.innerHTML = '<div class="empty-state"><span class="empty-icon">🗑</span><p>回收站是空的</p></div>';
+        $('#btn-trash-restore-all').disabled = true;
+        $('#btn-trash-empty').disabled = true;
+        return;
+      }
+      $('#btn-trash-restore-all').disabled = false;
+      $('#btn-trash-empty').disabled = false;
+
+      body.innerHTML = d.items.map(it => {
+        const dt = new Date(it.deletedAt);
+        const dateStr = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+        const sizeStr = it.isDirectory ? '文件夹' : formatSizeCompat(it.size);
+        const missing = !it.exists ? ' <span class="trash-missing">(文件已丢失)</span>' : '';
+        return `
+          <div class="trash-row" data-id="${it.id}">
+            <div class="trash-icon">${it.isDirectory ? '📁' : iconFor(it.originalName, false)}</div>
+            <div class="trash-info">
+              <div class="trash-name">${escapeHtml(it.originalName)}${missing}</div>
+              <div class="trash-meta">原路径: ${escapeHtml(it.originalPath)} · ${sizeStr} · 删除于 ${dateStr}</div>
+            </div>
+            <div class="trash-actions">
+              <button class="btn btn-secondary btn-sm" data-action="restore" ${!it.exists ? 'disabled' : ''}>↩ 还原</button>
+              <button class="btn btn-danger btn-sm" data-action="purge">🔥 永久删除</button>
+            </div>
+          </div>`;
+      }).join('');
+
+      body.querySelectorAll('.trash-row').forEach(row => {
+        const id = row.dataset.id;
+        row.querySelector('[data-action="restore"]').addEventListener('click', async () => {
+          try { await apiPost('/api/trash/restore', { id }); toast('已还原', 'success'); await renderTrashView(); }
+          catch (err) { toast(err.message, 'error'); }
+        });
+        row.querySelector('[data-action="purge"]').addEventListener('click', async () => {
+          if (!confirm('确定要永久删除该项吗？此操作不可撤销。')) return;
+          try { await apiDelete('/api/trash/purge', { id }); toast('已永久删除', 'success'); await renderTrashView(); }
+          catch (err) { toast(err.message, 'error'); }
+        });
+      });
+    } catch (err) {
+      body.innerHTML = `<div style="padding:20px;color:var(--danger)">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function formatSizeCompat(bytes) {
+    if (!bytes) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+  }
+
+  btnTrash.addEventListener('click', openTrashModal);
+  $('#btn-trash-close').addEventListener('click', () => modalTrash.classList.add('hidden'));
+  $('#btn-trash-refresh').addEventListener('click', renderTrashView);
+  $('#btn-trash-empty').addEventListener('click', async () => {
+    if (trashCount === 0) return;
+    if (!confirm(`确定要清空回收站吗？${trashCount} 个项目将被永久删除,不可撤销。`)) return;
+    showLoading();
+    try {
+      const d = await apiPost('/api/trash/empty', {});
+      toast(`已清空 ${d.purged} 个项目`, 'success');
+      await renderTrashView();
+    } catch (err) { toast(err.message, 'error'); }
+    finally { hideLoading(); }
+  });
+  $('#btn-trash-restore-all').addEventListener('click', async () => {
+    showLoading();
+    let restored = 0, failed = 0;
+    try {
+      const d = await apiGet('/api/trash');
+      for (const it of d.items) {
+        try { await apiPost('/api/trash/restore', { id: it.id }); restored++; }
+        catch { failed++; }
+      }
+      toast(`已还原 ${restored} 项${failed ? `, 失败 ${failed} 项` : ''}`, failed ? 'info' : 'success');
+      await renderTrashView();
+    } catch (err) { toast(err.message, 'error'); }
+    finally { hideLoading(); }
+  });
+
+  // ── Delete (moves to trash) ──────────────────────────────────────────────
   function confirmDelete(filePath, name, isDir) {
     pendingDelete = { path: [filePath], name, isDir };
-    deleteTargetName.textContent = `确定要删除 ${isDir ? '文件夹' : '文件'} "${name}" 吗？`;
+    deleteTargetName.textContent = `确定要删除 ${isDir ? '文件夹' : '文件'} "${name}" 吗？\n(将移入回收站,可在回收站中恢复)`;
     modalDelete.classList.remove('hidden');
   }
   $('#btn-cancel-delete').addEventListener('click', () => { modalDelete.classList.add('hidden'); pendingDelete = null; });
   $('#btn-confirm-delete').addEventListener('click', async () => {
     if (!pendingDelete) return;
     modalDelete.classList.add('hidden'); showLoading();
-    let deleted = 0;
-    for (const p of pendingDelete.path) { try { await apiDelete('/api/delete', { path: p }); deleted++; } catch (err) { toast(`删除失败: ${err.message}`, 'error'); } }
-    if (deleted > 0) toast(`已删除 ${deleted} 个项目`, 'success');
-    selected.clear(); await navigateTo(currentPath); hideLoading(); pendingDelete = null;
+    let moved = 0;
+    for (const p of pendingDelete.path) {
+      try { await apiDelete('/api/delete', { path: p }); moved++; }
+      catch (err) { toast(`删除失败: ${err.message}`, 'error'); }
+    }
+    if (moved > 0) toast(`已移入回收站 ${moved} 个项目`, 'success');
+    selected.clear(); await navigateTo(currentPath); await refreshTrashCount();
+    hideLoading(); pendingDelete = null;
   });
 
   document.querySelectorAll('.modal-backdrop').forEach(bd =>
@@ -746,6 +980,7 @@
       storageBadge.title = `存储路径: ${cfg.storageRoot}`;
       applyTheme(cfg.theme);
     } catch { storageBadge.textContent = '—'; }
+    refreshTrashCount();
     const hashPath = decodeURIComponent(window.location.hash.slice(1)) || '/';
     navigateTo(hashPath);
   }

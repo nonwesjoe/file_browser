@@ -2,6 +2,8 @@ node_modules/
 dist/
 .cache_thumbs/
 .tmp_uploads/
+.trash/
+.trash/.meta/
 
 # User data — keep the directory, ignore contents
 storage/*

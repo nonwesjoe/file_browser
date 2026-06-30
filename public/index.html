@@ -31,13 +31,18 @@
         <button id="btn-mkdir" class="btn btn-secondary" title="新建文件夹">
           <span class="icon">➕</span> 新建文件夹
         </button>
+        <button id="btn-trash" class="btn btn-icon btn-trash" title="回收站">
+          🗑<span id="trash-count" class="trash-count hidden">0</span>
+        </button>
         <button id="btn-settings" class="btn btn-icon" title="设置">⚙️</button>
         <button id="btn-logout" class="btn btn-icon" title="退出登录">🚪</button>
       </div>
     </header>
 
     <!-- Breadcrumb -->
-    <nav class="breadcrumb" id="breadcrumb"></nav>
+    <nav class="breadcrumb" id="breadcrumb">
+      <button id="bc-jump" class="bc-jump" title="跳转到路径" style="display:none">📍</button>
+    </nav>
 
     <!-- Toolbar -->
     <div class="toolbar">
@@ -169,8 +174,29 @@
       <div id="preview-body" class="preview-body"></div>
       <div id="preview-truncated" class="preview-truncated hidden"></div>
       <div class="preview-footer">
+        <button id="btn-preview-copy" class="btn btn-secondary">📋 复制</button>
         <button id="btn-preview-download" class="btn btn-secondary">⬇ 下载</button>
         <button id="btn-preview-close" class="btn btn-primary">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: trash view -->
+  <div id="modal-trash" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content modal-trash-content">
+      <div class="preview-header">
+        <h3>🗑 回收站</h3>
+        <span id="trash-meta" class="preview-meta"></span>
+      </div>
+      <div id="trash-toolbar" class="trash-toolbar">
+        <button id="btn-trash-restore-all" class="btn btn-secondary btn-sm">↩ 全部还原</button>
+        <button id="btn-trash-empty" class="btn btn-danger btn-sm">🔥 清空回收站</button>
+        <button id="btn-trash-refresh" class="btn btn-secondary btn-sm">🔄 刷新</button>
+      </div>
+      <div id="trash-body" class="trash-body"></div>
+      <div class="modal-actions">
+        <button id="btn-trash-close" class="btn btn-primary">关闭</button>
       </div>
     </div>
   </div>
@@ -215,6 +241,10 @@
 
   <!-- Hidden file input for upload -->
   <input id="file-input" type="file" multiple hidden>
+
+  <!-- Syntax highlighting — graceful fallback to plain text if CDN is blocked -->
+  <script src="https://cdn.jsdelivr.net/npm/[email protected]/lib/index.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/[email protected]/styles/atom-one-dark.min.css">
 
   <script src="/js/app.js"></script>
 </body>

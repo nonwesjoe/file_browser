@@ -164,7 +164,7 @@ Environment=STORAGE_ROOT=${STORAGE_ROOT}
 
 NoNewPrivileges=true
 ProtectSystem=strict
-ReadWritePaths=${STORAGE_ROOT} ${SCRIPT_DIR}/.cache_thumbs ${SCRIPT_DIR}/.tmp_uploads
+ReadWritePaths=${STORAGE_ROOT} ${SCRIPT_DIR}/.cache_thumbs ${SCRIPT_DIR}/.tmp_uploads ${SCRIPT_DIR}/.trash
 
 StandardOutput=journal
 StandardError=journal
@@ -204,6 +204,10 @@ if [ "$INSTALL_SERVICE" = true ]; then
   echo -e "    状态:   ${CYAN}sudo systemctl status ${SERVICE_NAME}${NC}"
   echo -e "    日志:   ${CYAN}sudo journalctl -u ${SERVICE_NAME} -f${NC}"
   echo -e "    卸载:   ${CYAN}bash install.sh --remove${NC}"
+  echo ""
+  echo -e "  ${BOLD}更新项目:${NC}"
+  echo -e "    ${CYAN}bash update.sh --service ${SERVICE_NAME}${NC}"
+  echo -e "    拉取最新代码 → 重新安装依赖 → 编译 → 重启服务 (一行完成)"
 else
   echo -e "  ${BOLD}启动方式:${NC}"
   echo -e "    ${CYAN}npm run dev${NC}        # 开发模式（自动编译）"
@@ -211,5 +215,8 @@ else
   echo ""
   echo -e "  安装为系统服务（开机自启）:"
   echo -e "    ${CYAN}sudo bash install.sh --service${NC}"
+  echo ""
+  echo -e "  ${BOLD}更新项目:${NC}"
+  echo -e "    ${CYAN}bash update.sh${NC}    # 仅拉取代码 + 重建"
 fi
 echo ""

@@ -117,11 +117,12 @@ body {
   backdrop-filter: blur(20px) saturate(1.8);
   -webkit-backdrop-filter: blur(20px) saturate(1.8);
 }
-.breadcrumb a {
+.breadcrumb a, .breadcrumb .bc-seg {
   color: var(--primary); text-decoration: none; padding: 3px 8px;
   border-radius: 6px; transition: all var(--transition);
+  background: none; border: none; font: inherit;
 }
-.breadcrumb a:hover { background: var(--primary-light); }
+.breadcrumb a:hover, .breadcrumb .bc-seg:hover { background: var(--primary-light); }
 .breadcrumb .sep { color: var(--text-secondary); margin: 0 2px; font-size: .75rem; }
 .breadcrumb .current {
   color: var(--text); font-weight: 600; padding: 3px 8px;
@@ -652,3 +653,140 @@ body {
   font-family: inherit; font-size: .75rem;
   border: 1px solid var(--border);
 }
+
+/* ── Trash button & badge ────────────────────────────────────────────────── */
+.btn-trash {
+  position: relative;
+  font-size: 1rem;
+}
+.trash-count {
+  position: absolute;
+  top: -4px; right: -4px;
+  min-width: 18px; height: 18px;
+  padding: 0 5px;
+  background: var(--danger);
+  color: #fff;
+  border-radius: 9px;
+  font-size: .65rem;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.trash-count.hidden { display: none; }
+
+/* ── Breadcrumb path-jump ────────────────────────────────────────────────── */
+.bc-seg {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: .9rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all var(--transition);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bc-seg:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.bc-seg.current {
+  color: var(--primary);
+  font-weight: 600;
+  background: var(--primary-light);
+}
+.bc-jump {
+  background: none;
+  border: 1px dashed var(--border);
+  color: var(--text-secondary);
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: .85rem;
+  margin-left: 6px;
+  transition: all var(--transition);
+}
+.bc-jump:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.bc-jump-input {
+  margin-left: 8px;
+  padding: 4px 10px;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: .85rem;
+  outline: none;
+  width: 320px;
+  box-shadow: var(--shadow-glow);
+}
+
+/* ── Trash Modal ─────────────────────────────────────────────────────────── */
+.modal-trash-content {
+  max-width: 720px;
+  width: 90vw;
+  max-height: 80vh;
+  display: flex; flex-direction: column;
+}
+.trash-toolbar {
+  display: flex; gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+.trash-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 200px;
+  max-height: 60vh;
+}
+.trash-row {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  transition: background var(--transition);
+}
+.trash-row:hover { background: var(--primary-light); }
+.trash-icon { font-size: 1.6rem; text-align: center; }
+.trash-info { min-width: 0; }
+.trash-name {
+  font-weight: 500;
+  word-break: break-all;
+  color: var(--text);
+}
+.trash-meta {
+  font-size: .75rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  word-break: break-all;
+}
+.trash-missing { color: var(--danger); font-weight: normal; }
+.trash-actions { display: flex; gap: 6px; }
+.trash-actions button:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── HLJS Preview ────────────────────────────────────────────────────────── */
+.hljs-preview {
+  margin: 0;
+  padding: 16px;
+  background: #282c34;
+  color: #abb2bf;
+  font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .8rem;
+  line-height: 1.55;
+  border-radius: 8px;
+  overflow: auto;
+  max-height: 60vh;
+  white-space: pre;
+  tab-size: 2;
+}
+.hljs-preview code { background: none; padding: 0; font: inherit; }
